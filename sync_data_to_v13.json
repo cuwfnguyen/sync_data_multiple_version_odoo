@@ -1,0 +1,886 @@
+{
+  "name": "13 sync data",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "a4acf514-fcf3-49c8-a4c7-cbad76a8eef1",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2000,
+        480
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "waitBetweenTries": 100,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "5236712e-9a1a-419c-9f9f-86db95e660ea",
+      "name": "Schedule Trigger 13",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        500
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e9e29153-5307-4e41-9506-f7aacf8f6ec2",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1560,
+        280
+      ],
+      "alwaysOutputData": false,
+      "notesInFlow": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "queue": "odoo17_publish (odoo13_subscribe)",
+        "options": {}
+      },
+      "id": "0c79f5cd-4000-4a8e-a67e-2a41ddf46a5e",
+      "name": "Odoo 13 Publish",
+      "type": "n8n-nodes-base.rabbitmq",
+      "typeVersion": 1.1,
+      "position": [
+        2360,
+        500
+      ],
+      "alwaysOutputData": false,
+      "retryOnFail": true,
+      "waitBetweenTries": 100,
+      "notesInFlow": true,
+      "credentials": {
+        "rabbitmq": {
+          "id": "iu6vwtWby647RNDU",
+          "name": "RabbitMQ account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Đẩy dữ liệu lên Rabbitmq "
+    },
+    {
+      "parameters": {},
+      "id": "bafb2db4-12c5-4688-b31a-16c64b732bd0",
+      "name": "Merge1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1800,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "queue": "odoo17_publish (odoo13_subscribe)",
+        "options": {
+          "autoDelete": false,
+          "acknowledge": "laterMessageNode",
+          "jsonParseBody": true,
+          "onlyContent": true
+        }
+      },
+      "id": "5dc2c763-bd54-4b17-a57f-62f844e73f5a",
+      "name": "RabbitMQ Trigger",
+      "type": "n8n-nodes-base.rabbitmqTrigger",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        1160
+      ],
+      "credentials": {
+        "rabbitmq": {
+          "id": "iu6vwtWby647RNDU",
+          "name": "RabbitMQ account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.content }}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "23e18b77-789a-48b8-8679-92d96c9effcb",
+      "name": "if not content",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        1160
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {},
+      "id": "345a0f22-a53e-4d51-8d8a-751fc5773625",
+      "name": "Merge3",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1560,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "412cd582-8c5f-4558-8047-8a90c5033084",
+      "name": "Merge2",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1700,
+        1380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "deleteMessage"
+      },
+      "id": "f6cffd96-043f-4e84-a4bb-c783adf1612d",
+      "name": "RabbitMQ",
+      "type": "n8n-nodes-base.rabbitmq",
+      "typeVersion": 1.1,
+      "position": [
+        2400,
+        1400
+      ],
+      "credentials": {
+        "rabbitmq": {
+          "id": "iu6vwtWby647RNDU",
+          "name": "RabbitMQ account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "27b7fef6-6ea5-4e66-9f38-40638200e306",
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1900,
+        1380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution\nfrom data_send_temp\nWHERE is_synchronized = 'f' \nand retry = 0\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "4c07ce78-9d80-46ca-8a4d-405c9e4fcbde",
+      "name": "Postgres 17",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1340,
+        200
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution\nfrom data_send_temp\nWHERE is_synchronized = 'f' \nand retry = 1 \nand NOW()::TIMESTAMP - last_execution <= INTERVAL '5 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "a13e1a86-47b0-4ca3-8d87-599519f94dc9",
+      "name": "Postgres 17 Retry 1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1340,
+        400
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution from data_send_temp\nWHERE is_synchronized = 'f' \nand retry = 2\nand NOW()::TIMESTAMP - last_execution <= INTERVAL '10 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "ad209836-45bd-4f04-a1d1-f047a75b3381",
+      "name": "Postgres 17 Retry 2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1340,
+        600
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution from data_send_temp\nWHERE is_synchronized = 'f' \nand retry = 3\nand NOW()::TIMESTAMP - last_execution <= INTERVAL '15 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "f2956b53-dd1d-4e26-8953-a9625d54c15e",
+      "name": "Postgres 17 Retry 3",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1340,
+        800
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "resource": "custom",
+        "customResource": "data.receive.temp",
+        "fieldsToCreateOrUpdate": {
+          "fields": [
+            {
+              "fieldName": "=content",
+              "fieldValue": "={{ $json.content }}"
+            }
+          ]
+        }
+      },
+      "id": "67f3b41b-d1b7-4d31-88ae-f42bbe0acd71",
+      "name": "Odoo 13",
+      "type": "n8n-nodes-base.odoo",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        1180
+      ],
+      "retryOnFail": false,
+      "waitBetweenTries": 100,
+      "alwaysOutputData": false,
+      "credentials": {
+        "odooApi": {
+          "id": "KeFxiG43poM4DQ8j",
+          "name": "Odoo 13"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "data_send_temp",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_synchronized": true,
+            "id": "={{ $json.temp_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_synchronized",
+              "displayName": "is_synchronized",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "retry",
+              "displayName": "retry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_uid",
+              "displayName": "create_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_date",
+              "displayName": "create_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_uid",
+              "displayName": "write_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_date",
+              "displayName": "write_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_execution",
+              "displayName": "last_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c0f96971-5090-42fa-a068-1ab72c5abe6d",
+      "name": "Postgres 17 update synchronized",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        2180,
+        1300
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "notesInFlow": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Cập nhật trạng thái sync"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "data_send_temp",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.temp_id }}",
+            "last_execution": "={{ $json.execution }}",
+            "retry": "={{ $json.retry + 1}}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_synchronized",
+              "displayName": "is_synchronized",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "retry",
+              "displayName": "retry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "create_uid",
+              "displayName": "create_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_date",
+              "displayName": "create_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_uid",
+              "displayName": "write_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_date",
+              "displayName": "write_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_execution",
+              "displayName": "last_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "27ed45eb-a64c-4fda-ada6-00ad907f321a",
+      "name": "Postgres 17 retry / execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        2180,
+        1520
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "notesInFlow": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Cập nhật retry và execution date"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Odoo 13 Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger 13": {
+      "main": [
+        [
+          {
+            "node": "Postgres 17",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 17 Retry 1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 17 Retry 2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 17 Retry 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Odoo 13 Publish": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RabbitMQ Trigger": {
+      "main": [
+        [
+          {
+            "node": "if not content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if not content": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Odoo 13",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "Postgres 17 update synchronized",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres 17 retry / execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 Retry 1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Postgres 17 Retry 2": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 Retry 3": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Odoo 13": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 update synchronized": {
+      "main": [
+        [
+          {
+            "node": "RabbitMQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 retry / execution": {
+      "main": [
+        [
+          {
+            "node": "RabbitMQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d9004c51-96b6-4868-a79a-1de74cd8a047",
+  "id": "MdHOe3EsdrUsvUu3",
+  "meta": {
+    "instanceId": "9f49de2bd636eb16632dbf07bfd5afedec158250c6829b0abb26b94fe452e4c8"
+  },
+  "tags": [
+    {
+      "createdAt": "2024-01-03T01:39:44.834Z",
+      "updatedAt": "2024-01-03T01:39:44.834Z",
+      "id": "YnpgUMoIOyLQo0aF",
+      "name": "Sapo360"
+    }
+  ]
+}

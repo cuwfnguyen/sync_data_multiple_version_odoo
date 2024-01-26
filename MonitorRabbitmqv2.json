@@ -1,0 +1,291 @@
+{
+  "name": "MonitorRabbitmqv2",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://192.168.12.55:15672/api/queues/%2F/odoo13_publish (odoo17_subscribe)",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "id": "5601bd70-39d3-425e-8b32-79f01787ce83",
+      "name": "Odoo13_publish(17sub)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        520,
+        340
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "tK50mWEfTTyZeCqg",
+          "name": "Username/Password"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "id": "49902e72-813b-4618-8bc0-e30d5d2082d4",
+      "name": "Schedule Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        280,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://192.168.12.55:15672/api/queues/%2F/odoo17_publish (odoo13_subscribe)",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "id": "9940a190-72f2-41e4-bf7e-9dddb47bf927",
+      "name": "Odoo17_publish(13sub)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        520,
+        620
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "tK50mWEfTTyZeCqg",
+          "name": "Username/Password"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "38a4831c-c5cc-48a4-b9e9-d4d8c8382be0",
+              "leftValue": "={{ $json.messages }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8ee061ae-ee73-4c8b-8c7d-5d253542723f",
+      "name": "If message >100",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        740,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "38a4831c-c5cc-48a4-b9e9-d4d8c8382be0",
+              "leftValue": "={{ $json.messages }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f54e9743-01a2-4cfe-9a15-ade2626e6640",
+      "name": "If message > 100 (1)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        740,
+        620
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f1089e87-d798-4602-aa35-eee72c93973b",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1000,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "49734203-b3e8-42ec-8e4f-2ae9cd3d7f99",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1240,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://360dev.sapocorp.net/api/monitor_rabbitmq",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Sapo360-Access-Token",
+              "value": "82bc7b4132af333cc6e91a49e4cf7bc6"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"data\":{\"total_message\":{{ $json.messages }},\"queue_name\": \"{{ $json.name }}\"}}    ",
+        "options": {}
+      },
+      "id": "26b3a68c-74fc-47ef-b2f4-1f3aa9a01fc7",
+      "name": "Send workchat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1480,
+        500
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Odoo13_publish(17sub)": {
+      "main": [
+        [
+          {
+            "node": "If message >100",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Odoo17_publish(13sub)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Odoo13_publish(17sub)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Odoo17_publish(13sub)": {
+      "main": [
+        [
+          {
+            "node": "If message > 100 (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If message >100": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If message > 100 (1)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Send workchat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send workchat": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "10eae5bd-c981-4b7b-9870-5545f60e3c36",
+  "id": "m5XB6qaPzHWJJWDA",
+  "meta": {
+    "instanceId": "9f49de2bd636eb16632dbf07bfd5afedec158250c6829b0abb26b94fe452e4c8"
+  },
+  "tags": []
+}

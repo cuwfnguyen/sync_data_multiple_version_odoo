@@ -1,0 +1,754 @@
+{
+  "name": "17 update data",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "2bbb663b-d9f3-4b71-b67c-0da711761455",
+      "name": "Loop Over Split",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1100,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.result.state }}",
+              "value2": "done"
+            }
+          ]
+        }
+      },
+      "id": "7a23806d-0efe-4656-8936-a254e83a3ea9",
+      "name": "IF DONE",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        920
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "3221b707-adb4-4c26-9f35-815355d885ed",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        560
+      ],
+      "alwaysOutputData": true,
+      "notesInFlow": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "c763dbfe-42a1-4bce-9d5e-cd997d5ed99f",
+      "name": "Merge1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "5af8148f-f61f-4605-8988-cf61d2ab7a75",
+      "name": "Schedule Trigger ",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution\nfrom data_receive_temp\nWHERE is_synchronized = 'f' \nand retry = 1 \nand NOW()::TIMESTAMP - last_execution <= INTERVAL '5 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "adfd46a9-8296-43bd-8c2c-b25e9cecf036",
+      "name": "Postgres 17 Retry 1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        460,
+        660
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution from data_receive_temp\nWHERE is_synchronized = 'f' \nand retry = 2\nand NOW()::TIMESTAMP - last_execution <= INTERVAL '10 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "4eedd81d-4325-4bbf-a3d1-f75be0ed5cb4",
+      "name": "Postgres 17 Retry 2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        460,
+        840
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "data_receive_temp",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_synchronized": true,
+            "id": "={{ $json.temp_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_synchronized",
+              "displayName": "is_synchronized",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "retry",
+              "displayName": "retry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_uid",
+              "displayName": "create_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_date",
+              "displayName": "create_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_uid",
+              "displayName": "write_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_date",
+              "displayName": "write_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_execution",
+              "displayName": "last_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "29aafa9c-a449-4608-a925-50f8d62c68ff",
+      "name": "Postgres 17 update synchronized",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1940,
+        900
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "notesInFlow": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Cập nhật trạng thái sync"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution from data_receive_temp\nWHERE is_synchronized = 'f' \nand retry = 3\nand NOW()::TIMESTAMP - last_execution <= INTERVAL '15 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "32418918-7d1e-4164-8dc7-3ee9a3a9123a",
+      "name": "Postgres 17 Retry 3",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        460,
+        1020
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {},
+      "id": "ccd3de6a-bf53-49ed-aa13-35563bb5134c",
+      "name": "Merge2",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "58fe18af-1108-47b2-ba93-2c825b84cd95",
+      "name": "Merge3",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1540,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://360marketdev.sapocorp.net/api/data_receive_temp17/create_update_data_temp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Sapo360-Access-Token",
+              "value": "82bc7b4132af333cc6e91a49e4cf7bc6"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"id\": {{$json.temp_id}}, \"content\": {{ $json.content }}}",
+        "options": {}
+      },
+      "id": "2d7cff20-5d19-4c20-9bdb-1a01b9f3e4d8",
+      "name": "HTTP Request1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1340,
+        760
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution\nfrom data_receive_temp\nWHERE is_synchronized = 'f' \nand retry = 0\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "a75f5bbc-77d3-4128-8a14-27edc1669071",
+      "name": "Postgres 17 Retry 0",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        460,
+        460
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "data_receive_temp",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.temp_id }}",
+            "last_execution": "={{ $json.execution }}",
+            "retry": "={{ $json.retry + 1}}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_synchronized",
+              "displayName": "is_synchronized",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "retry",
+              "displayName": "retry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "create_uid",
+              "displayName": "create_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_date",
+              "displayName": "create_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_uid",
+              "displayName": "write_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_date",
+              "displayName": "write_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_execution",
+              "displayName": "last_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "92382389-92d0-48fa-bcb3-b2b5ea6450be",
+      "name": "Postgres 17 retry / execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1940,
+        1120
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "notesInFlow": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "okoq4sBAZgFItcBN",
+          "name": "Postgres 17"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Cập nhật retry và execution date"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Loop Over Split": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "IF DONE": {
+      "main": [
+        [
+          {
+            "node": "Postgres 17 update synchronized",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres 17 retry / execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger ": {
+      "main": [
+        [
+          {
+            "node": "Postgres 17 Retry 0",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 17 Retry 1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 17 Retry 2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 17 Retry 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 Retry 1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Postgres 17 Retry 2": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 update synchronized": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 Retry 3": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "IF DONE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 Retry 0": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 17 retry / execution": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8d6905e2-ebeb-42cb-987d-ed4c872c36b1",
+  "id": "sorWLt543RTOcb0B",
+  "meta": {
+    "instanceId": "9f49de2bd636eb16632dbf07bfd5afedec158250c6829b0abb26b94fe452e4c8"
+  },
+  "tags": [
+    {
+      "createdAt": "2024-01-03T01:39:44.834Z",
+      "updatedAt": "2024-01-03T01:39:44.834Z",
+      "id": "YnpgUMoIOyLQo0aF",
+      "name": "Sapo360"
+    }
+  ]
+}

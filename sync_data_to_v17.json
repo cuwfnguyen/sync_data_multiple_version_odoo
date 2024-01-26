@@ -1,0 +1,868 @@
+{
+  "name": "17 sync data",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "dff1d7b4-497a-4189-a5c6-17e447b8e3a3",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2000,
+        480
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "waitBetweenTries": 100,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "9f8944f8-33a6-423b-8b66-bbc506d84ebf",
+      "name": "Schedule Trigger 13",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        500
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ba8285b7-f695-4cbc-9538-bd893be04ef8",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1560,
+        280
+      ],
+      "alwaysOutputData": false,
+      "notesInFlow": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "queue": "odoo13_publish (odoo17_subscribe)",
+        "options": {}
+      },
+      "id": "530cfd16-d99a-422e-be24-66be4f69c2fd",
+      "name": "Odoo 13 Publish",
+      "type": "n8n-nodes-base.rabbitmq",
+      "typeVersion": 1.1,
+      "position": [
+        2360,
+        500
+      ],
+      "alwaysOutputData": false,
+      "retryOnFail": true,
+      "waitBetweenTries": 100,
+      "notesInFlow": true,
+      "credentials": {
+        "rabbitmq": {
+          "id": "iu6vwtWby647RNDU",
+          "name": "RabbitMQ account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Đẩy dữ liệu lên Rabbitmq "
+    },
+    {
+      "parameters": {},
+      "id": "16635b1c-b266-4e1a-82d3-2fe88cfd2bf1",
+      "name": "Merge1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1800,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution\nfrom data_send_temp\nWHERE is_synchronized = 'f' \nand retry = 0\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "0bcc7d4d-cd7f-4aca-93c0-1e47cedee8c7",
+      "name": "Postgres 13",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1340,
+        200
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "qLFLLC4trs3xdsh9",
+          "name": "Postgres 13"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "queue": "odoo13_publish (odoo17_subscribe)",
+        "options": {
+          "acknowledge": "laterMessageNode",
+          "jsonParseBody": true,
+          "onlyContent": true
+        }
+      },
+      "id": "87fa1324-5b42-42ee-a252-0294457670a3",
+      "name": "RabbitMQ Trigger",
+      "type": "n8n-nodes-base.rabbitmqTrigger",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        1160
+      ],
+      "credentials": {
+        "rabbitmq": {
+          "id": "iu6vwtWby647RNDU",
+          "name": "RabbitMQ account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "data_send_temp",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.temp_id }}",
+            "last_execution": "={{ $json.execution }}",
+            "retry": "={{ $json.retry + 1}}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_synchronized",
+              "displayName": "is_synchronized",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "retry",
+              "displayName": "retry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "create_uid",
+              "displayName": "create_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_date",
+              "displayName": "create_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_uid",
+              "displayName": "write_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_date",
+              "displayName": "write_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_execution",
+              "displayName": "last_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "efcc5cd8-6bad-406a-b7b3-2ec03a4d02d3",
+      "name": "Postgres 13 retry / execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        2180,
+        1520
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "notesInFlow": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "qLFLLC4trs3xdsh9",
+          "name": "Postgres 13"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Cập nhật retry và execution date"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "data_send_temp",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_synchronized": true,
+            "id": "={{ $json.temp_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_synchronized",
+              "displayName": "is_synchronized",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "retry",
+              "displayName": "retry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_uid",
+              "displayName": "create_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "create_date",
+              "displayName": "create_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_uid",
+              "displayName": "write_uid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "write_date",
+              "displayName": "write_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_execution",
+              "displayName": "last_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3e8e12ed-fb9a-4bd1-926c-b206809f823b",
+      "name": "Postgres 13 update synchronized",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        2180,
+        1300
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "notesInFlow": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "qLFLLC4trs3xdsh9",
+          "name": "Postgres 13"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Cập nhật trạng thái sync"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.content }}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "d2b96ba9-b0b4-442c-bf72-0a49f92e8117",
+      "name": "if not content",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        1160
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution\nfrom data_send_temp\nWHERE is_synchronized = 'f' \nand retry = 1 \nand NOW()::TIMESTAMP - last_execution <= INTERVAL '5 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "e66a9e36-b5a3-4116-9494-e7881b2a9bb6",
+      "name": "Postgres 13 Retry 1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1340,
+        400
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "qLFLLC4trs3xdsh9",
+          "name": "Postgres 13"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution from data_send_temp\nWHERE is_synchronized = 'f' \nand retry = 2\nand NOW()::TIMESTAMP - last_execution <= INTERVAL '10 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "2d212efb-24d7-4a49-8f16-51eac73f104f",
+      "name": "Postgres 13 Retry 2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1340,
+        600
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "qLFLLC4trs3xdsh9",
+          "name": "Postgres 13"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as temp_id, retry, content, NOW()::TIMESTAMP as execution from data_send_temp\nWHERE is_synchronized = 'f' \nand retry = 3\nand NOW()::TIMESTAMP - last_execution <= INTERVAL '15 MINUTE'\norder by id ASC\nlimit 20\n",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "id": "7f9db5bc-aed2-470f-84f7-62aa7e22e6f7",
+      "name": "Postgres 13 Retry 3",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        1340,
+        800
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "qLFLLC4trs3xdsh9",
+          "name": "Postgres 13"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Get dữ liệu cần sync"
+    },
+    {
+      "parameters": {},
+      "id": "373d3481-55f4-402e-9f1e-145ce4bf9ef8",
+      "name": "Merge3",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1560,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "30fcb46f-79a9-450a-844f-fb2ddcfcc050",
+      "name": "Merge2",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1700,
+        1380
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "custom",
+        "customResource": "data.receive.temp",
+        "fieldsToCreateOrUpdate": {
+          "fields": [
+            {
+              "fieldName": "=content",
+              "fieldValue": "={{ $json.content }}"
+            }
+          ]
+        }
+      },
+      "id": "1cee152c-9788-4f91-9277-f5451f5f7f1a",
+      "name": "Odoo 17",
+      "type": "n8n-nodes-base.odoo",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        1180
+      ],
+      "retryOnFail": false,
+      "waitBetweenTries": 100,
+      "alwaysOutputData": false,
+      "credentials": {
+        "odooApi": {
+          "id": "VVsavNCqseIqDtpZ",
+          "name": "Odoo 17"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "0d3b7f73-9240-41d6-bf3d-4b134506b95a",
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1900,
+        1380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "deleteMessage"
+      },
+      "id": "b816cd1b-2ff7-411d-9068-8ba3e5b752b8",
+      "name": "RabbitMQ",
+      "type": "n8n-nodes-base.rabbitmq",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        1180
+      ],
+      "credentials": {
+        "rabbitmq": {
+          "id": "iu6vwtWby647RNDU",
+          "name": "RabbitMQ account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Odoo 13 Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger 13": {
+      "main": [
+        [
+          {
+            "node": "Postgres 13",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 13 Retry 1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 13 Retry 2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres 13 Retry 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Odoo 13 Publish": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 13": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RabbitMQ Trigger": {
+      "main": [
+        [
+          {
+            "node": "if not content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if not content": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Odoo 17",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Postgres 13 Retry 1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Postgres 13 Retry 2": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres 13 Retry 3": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Odoo 17": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RabbitMQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "Postgres 13 update synchronized",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres 13 retry / execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "805e9f78-c541-45a4-8ab0-05195641456f",
+  "id": "k5ty4KhEv9Q41Xt7",
+  "meta": {
+    "instanceId": "9f49de2bd636eb16632dbf07bfd5afedec158250c6829b0abb26b94fe452e4c8"
+  },
+  "tags": [
+    {
+      "createdAt": "2024-01-03T01:39:44.834Z",
+      "updatedAt": "2024-01-03T01:39:44.834Z",
+      "id": "YnpgUMoIOyLQo0aF",
+      "name": "Sapo360"
+    }
+  ]
+}
